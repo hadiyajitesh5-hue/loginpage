@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Login</title>
+<script>
+function checkPassword(){
+var password=document.getElementById("pass").value;
+
+if(password==="3721"){
+window.location.href="https://sites.google.com/view/yugvifiles/home";
+}
+else{
+alert("Wrong Password");
+}
+}
+</script>
+</head>
+
+<body style="text-align:center;margin-top:100px;">
+<h2>Enter Password</h2>
+
+<input type="password" id="pass">
+
+<br><br>
+
+<button onclick="checkPassword()">Login</button>
+
+</body>
+</html>
